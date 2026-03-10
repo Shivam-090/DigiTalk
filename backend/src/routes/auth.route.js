@@ -8,6 +8,9 @@ router.post("/signup", signup);
 router.post("/login", login);
 router.post("/logout", logout);
 
+//forget pass
+//reset pass
+
 router.post("/onboarding", protectRoute, onboard);
 
 

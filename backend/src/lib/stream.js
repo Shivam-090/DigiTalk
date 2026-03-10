@@ -17,11 +17,16 @@ export const upsertStreamUser = async (userData)=>{
         await streamClient.upsertUsers([userData]);
         return userData;
     }catch (error){
-        console.log("Error in upserting stream user", error);
+        console.error("Error in upserting stream user", error);
     }
 };
 
 //later
 export const generateStreamToken = (userId)=>{
-
+    try{
+        const userIdStr = userId.toString();
+        return streamClient.createToken(userIdStr);
+    }catch(error){
+        console.error("Error in generating stream token", error)
+    }
 };
