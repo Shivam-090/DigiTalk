@@ -3,7 +3,8 @@ import useAuthUser from "../hooks/useAuthUser";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import toast, { LoaderIcon } from "react-hot-toast";
 import { completeOnboarding } from "../lib/api";
-import { CameraIcon, ShuffleIcon, MapPinIcon, ShipWheelIcon } from "lucide-react";
+import { fileToCompressedDataUrl } from "../lib/image.js";
+import { CameraIcon, ImagePlusIcon, ShuffleIcon, MapPinIcon, ShipWheelIcon } from "lucide-react";
 import { LANGUAGES } from "../constants";
 
 const OnboardingPage = () => {
@@ -50,9 +51,29 @@ const OnboardingPage = () => {
 
   const handleRandomAvatar = () => {
     const idx = Math.floor(Math.random()*100)+1;
-    const randomAvatar = `https://avatar.iran.liara.run/public/${idx}.png`;
+    const randomAvatar = `https://avatar.iran.liara.run/public/${idx}`;
     setFormState({...formState, profilePic: randomAvatar});
     toast("Random avatar generated!")
+  };
+
+  const handleImageUpload = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please choose an image file.");
+      return;
+    }
+
+    try {
+      const compressedImage = await fileToCompressedDataUrl(file);
+      setFormState((current) => ({ ...current, profilePic: compressedImage }));
+      toast.success("Profile image selected.");
+    } catch (error) {
+      toast.error(error.message || "Could not read that image.");
+    } finally {
+      event.target.value = "";
+    }
   };
 
   return (
@@ -88,6 +109,32 @@ const OnboardingPage = () => {
                   <ShuffleIcon className="size-4 mr-2" />
                   Generate Random Avatar
                 </button>
+                <label className="btn btn-outline">
+                  <ImagePlusIcon className="size-4 mr-2" />
+                  Upload Image
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleImageUpload}
+                  />
+                </label>
+              </div>
+
+              <div className="form-control w-full">
+                <label className="label">
+                  <span className="label-text">Profile Image URL</span>
+                </label>
+                <input
+                  type="url"
+                  name="profilePic"
+                  value={formState.profilePic}
+                  onChange={(e) =>
+                    setFormState({ ...formState, profilePic: e.target.value })
+                  }
+                  className="input input-bordered w-full"
+                  placeholder="https://example.com/your-photo.jpg"
+                />
               </div>
 
               <div className="form-control w-full">

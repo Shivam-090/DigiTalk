@@ -2,6 +2,9 @@ import { upsertStreamUser } from "../lib/stream.js";
 import User from "../models/User.js";
 import jwt from "jsonwebtoken";
 
+const getStreamImage = (image) =>
+    typeof image === "string" && /^https?:\/\//i.test(image) ? image : "";
+
 export async function signup (req, res){
     const {email, password, fullName} = req.body
 
@@ -28,7 +31,7 @@ export async function signup (req, res){
         }
 
         const idx = Math.floor(Math.random()*100) + 1;
-        const randomAvatar = `https://avatar.iran.liara.run/public/${idx}.png`
+        const randomAvatar = `https://avatar.iran.liara.run/public/${idx}`
 
         const newUser = await User.create({
             email,
@@ -41,7 +44,7 @@ export async function signup (req, res){
             await upsertStreamUser({
             id:newUser._id.toString(),
             name:newUser.fullName,
-            image:newUser.profilePic || "",
+            image:getStreamImage(newUser.profilePic),
         });
         console.log(`Stream user created for ${newUser.fullName}`);
         }catch (error){
@@ -144,7 +147,7 @@ export async function onboard (req, res){
             await upsertStreamUser({
                 id: updatedUser._id.toString(),
                 name: updatedUser.fullName,
-                image: updatedUser.profilePic || "",
+                image: getStreamImage(updatedUser.profilePic),
             })
             console.log(`Stream user updated for ${updatedUser.fullName} during onboarding`);
             }catch (streamError){

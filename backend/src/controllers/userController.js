@@ -22,8 +22,8 @@ export async function getRecommendedUsers (req, res){
 
 export async function getMyFriends (req, res){
     try{
-        const user = await User.findById(req.user.id).select("friends").populate("friends", "fullName, profilePic nativeLanguage learningLanguage");
-        res.status(200).json(user.friend);   
+        const user = await User.findById(req.user.id).select("friend").populate("friend", "fullName profilePic nativeLanguage learningLanguage");
+        res.status(200).json(user.friend || []);   
     }catch(error){
         console.error("Error in getMyFriends Controller", error.message);
         res.status(500).json({message: "Internal Server Error"});
@@ -154,7 +154,9 @@ export async function getOutgoingFriendRequests (req, res){
         const outgoingRequests = await FriendRequest.find({
             sender: req.user.id,
             status: "pending",
-        }).populate("sender", "fullName profilePic nativeLanguage learningLanguage");
+        }).populate("recipient", "fullName profilePic nativeLanguage learningLanguage");
+
+        res.status(200).json(outgoingRequests);
 
     }catch(error) {
         console.error("Error in getOutgoingFriendRequests Controller", error.message);

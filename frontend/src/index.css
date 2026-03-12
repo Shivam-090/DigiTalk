@@ -2,3 +2,156 @@
 @plugin "daisyui" {
     themes: all;
 }
+
+.str-chat {
+    height: 100%;
+    background: transparent;
+    --chat-line: color-mix(in srgb, hsl(var(--bc)) 18%, transparent);
+    --chat-panel: hsl(var(--b2));
+    --chat-panel-soft: color-mix(in srgb, hsl(var(--b2)) 84%, hsl(var(--b1)));
+    --chat-canvas: color-mix(in srgb, hsl(var(--b1)) 88%, hsl(var(--b2)));
+    --chat-overlay: color-mix(in srgb, hsl(var(--b3)) 82%, transparent);
+    --chat-text-strong: hsl(var(--bc));
+    --chat-text-soft: color-mix(in srgb, hsl(var(--bc)) 68%, transparent);
+    --chat-bubble-me: hsl(var(--p));
+    --chat-bubble-other: hsl(var(--b3));
+    --chat-bubble-me-text: hsl(var(--pc));
+    --chat-bubble-other-text: hsl(var(--bc));
+}
+
+.chat-shell {
+    background:
+        linear-gradient(180deg, color-mix(in srgb, hsl(var(--b2)) 92%, hsl(var(--b1))) 0%, hsl(var(--b1)) 100%);
+}
+
+.chat-layout {
+    background: color-mix(in srgb, var(--chat-canvas) 92%, hsl(var(--b2)));
+}
+
+.chat-sidebar {
+    background:
+        linear-gradient(180deg, var(--chat-panel) 0%, var(--chat-panel-soft) 100%);
+    border-right: 1px solid var(--chat-line);
+    box-shadow:
+        inset -1px 0 0 var(--chat-line),
+        10px 0 24px color-mix(in srgb, hsl(var(--bc)) 6%, transparent);
+}
+
+.chat-main {
+    background-color: var(--chat-canvas);
+    background-image:
+        radial-gradient(circle at 25px 25px, color-mix(in srgb, hsl(var(--bc)) 7%, transparent) 2px, transparent 0),
+        radial-gradient(circle at 75px 75px, color-mix(in srgb, hsl(var(--bc)) 4%, transparent) 2px, transparent 0);
+    background-size: 100px 100px;
+}
+
+.chat-main-header {
+    border-bottom: 1px solid var(--chat-line);
+    background: color-mix(in srgb, var(--chat-panel) 90%, transparent);
+    backdrop-filter: blur(8px);
+    box-shadow: 0 1px 0 var(--chat-line);
+}
+
+.str-chat__channel,
+.str-chat__main-panel,
+.str-chat__thread,
+.str-chat__thread .str-chat__list,
+.str-chat__window {
+    height: 100%;
+}
+
+.str-chat__main-panel {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.str-chat__window {
+    display: flex;
+    flex: 1 1 auto;
+    min-height: 0;
+    min-width: 0;
+    flex-direction: column;
+}
+
+.str-chat__container,
+.str-chat__channel {
+    width: 100%;
+}
+
+.str-chat__list-notifications {
+    display: none;
+}
+
+.str-chat__channel-header {
+    border-bottom: 0;
+    background: transparent;
+    padding: 0;
+    min-height: auto;
+    color: var(--chat-text-strong);
+}
+
+.str-chat__channel-header .str-chat__channel-header-title,
+.str-chat__channel-header .str-chat__channel-header-info,
+.str-chat__channel-header .str-chat__channel-header-meta {
+    color: var(--chat-text-strong);
+}
+
+.str-chat__list {
+    background: transparent;
+    padding: 1rem 1rem 0;
+    border-left: 1px solid var(--chat-line);
+}
+
+.str-chat__message-input {
+    background: var(--chat-overlay);
+    border-top: 1px solid var(--chat-line);
+}
+
+.str-chat__message-input-inner {
+    background: transparent;
+}
+
+.str-chat__message-input .str-chat__textarea__textarea,
+.str-chat__message-input .str-chat__textarea__textarea::placeholder,
+.str-chat__message-input .str-chat__send-button,
+.str-chat__message-input .str-chat__file-input-container,
+.str-chat__message-input .str-chat__emoji-picker-button {
+    color: var(--chat-text-strong);
+}
+
+.str-chat__message-simple-status {
+    display: none;
+}
+
+.str-chat__thread {
+    border-left: 1px solid var(--chat-line);
+    background: var(--chat-panel);
+    color: var(--chat-text-strong);
+    box-shadow: -10px 0 24px color-mix(in srgb, hsl(var(--bc)) 6%, transparent);
+}
+
+.str-chat__ul {
+    min-height: 100%;
+}
+
+.str-chat__message-list-scroll {
+    background: transparent;
+}
+
+.str-chat__message-simple__text-inner {
+    border-radius: 18px;
+}
+
+.str-chat__message-simple--me .str-chat__message-simple__text-inner {
+    background: var(--chat-bubble-me);
+    color: var(--chat-bubble-me-text);
+}
+
+.str-chat__message-simple:not(.str-chat__message-simple--me) .str-chat__message-simple__text-inner {
+    background: var(--chat-bubble-other);
+    color: var(--chat-bubble-other-text);
+}
+
+.str-chat__message-simple__timestamp {
+    color: var(--chat-text-soft);
+}

@@ -1,26 +1,32 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import React from 'react'
 import { acceptFriendRequest, getFriendRequests } from '../lib/api';
-import { BellIcon, UserCheckIcon, ClockIcon, MSquareIcon } from 'lucide-react';
+import { BellIcon, UserCheckIcon, ClockIcon, MessageSquareIcon } from 'lucide-react';
 import NoNotificationsFound from '../components/NoNotificationFound';
+import toast from 'react-hot-toast';
 
 const NotificationPage = () => {
   const queryClient = useQueryClient();
-  const {data:firendReuests, isLoading} = useQuery({
+  const { data: friendRequests, isLoading } = useQuery({
     queryKey: ["friendRequests"],
     queryFn: getFriendRequests,
   })
 
-  const { mutate:acceptRequestMutation, isPending } = useMutation({
+  const { mutate: acceptRequestMutation, isPending } = useMutation({
     mutationFn: acceptFriendRequest,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["friendRequests"] });
       queryClient.invalidateQueries({ queryKey: ["friends"] });
-    }
+      queryClient.invalidateQueries({ queryKey: ["Users"] });
+      toast.success("Friend request accepted.");
+    },
+    onError: (error) => {
+      toast.error(error?.response?.data?.message || "Could not accept friend request.");
+    },
   })
 
-  const incomingRequests = firendReuests?.incomingReqs || []
-  const acceptedRequests = firendReuests?.acceptedReqs || []
+  const incomingRequests = friendRequests?.incomingFriendRequests || []
+  const acceptedRequests = friendRequests?.acceptedFriendRequests || []
 
   return (
     <div className='p-4 sm:p-6 lg:p-8'>
@@ -42,7 +48,7 @@ const NotificationPage = () => {
               </h2>
 
               <div className='space-y-3'>
-                {incomingRequests.map((request)=>{
+                {incomingRequests.map((request) => (
                   <div key={request._id} className='card bg-base-200 shadow-sm hover:shadow-md transition-shadow'>
                     <div className='card-body p-4'>
                       <div className='flex items-center justify-between'>
@@ -71,7 +77,7 @@ const NotificationPage = () => {
 
                     </div>
                   </div>
-                })}
+                ))}
 
               </div>
 
@@ -92,7 +98,7 @@ const NotificationPage = () => {
                     <div className='card-body p-4'>
                       <div className='flex items-start gap-3'>
                         <div className='avatar mt-1 size-10 rounded-full'>  
-                          <img src={notification.recipient.profilePic} alt={notification.recipient.fillName} />
+                          <img src={notification.recipient.profilePic} alt={notification.recipient.fullName} />
                           </div>
                           <div className='flex-1'>
                             <h3 className='font-semibold'>{notification.recipient.fullName}</h3>
