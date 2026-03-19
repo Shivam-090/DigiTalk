@@ -89,6 +89,7 @@ MONGO_URI=your_mongodb_connection_string
 JWT_SECRET_KEY=your_jwt_secret
 STREAM_API_KEY=your_stream_api_key
 STREAM_API_SECRET=your_stream_api_secret
+CLIENT_URL=http://localhost:5173
 
 ADMIN_EMAIL=admin@example.com
 ADMIN_PASSWORD=your_admin_password
@@ -100,6 +101,7 @@ Create a `.env` file inside `frontend/` with:
 
 ```env
 VITE_STREAM_API_KEY=your_stream_api_key
+VITE_API_URL=http://localhost:3000
 ```
 
 ## Installation
@@ -136,6 +138,48 @@ Default local URLs:
 
 - Frontend: `http://localhost:5173`
 - Backend: `http://localhost:3000`
+
+## Deployment Notes
+
+This project is now prepared for separate frontend and backend deployments.
+
+### Frontend on Vercel
+
+Set these environment variables in the frontend project:
+
+```env
+VITE_STREAM_API_KEY=your_stream_api_key
+VITE_API_URL=https://your-backend-domain
+```
+
+### Backend on Vercel
+
+Deploy the `backend/` folder as its own Vercel project. The repository now includes:
+
+- `backend/api/index.js` as the serverless entry point
+- `backend/vercel.json` to route requests to the Express app
+
+Set these backend environment variables in Vercel:
+
+```env
+MONGO_URI=your_mongodb_connection_string
+JWT_SECRET_KEY=your_jwt_secret
+STREAM_API_KEY=your_stream_api_key
+STREAM_API_SECRET=your_stream_api_secret
+CLIENT_URL=https://your-frontend-domain
+
+ADMIN_EMAIL=admin@example.com
+ADMIN_PASSWORD=your_admin_password
+ADMIN_FULL_NAME=Admin
+ADMIN_USERNAME=admin
+NODE_ENV=production
+```
+
+If you want to allow multiple frontend domains, use:
+
+```env
+CLIENT_URLS=https://your-frontend-domain,https://your-preview-domain
+```
 
 ## Admin Access
 
@@ -202,8 +246,9 @@ From there, the admin can manage user activation status and review submitted rep
 
 ## Notes
 
-- The frontend is currently configured to call the backend at `http://localhost:3000/api`.
-- The backend CORS configuration currently allows `http://localhost:5173`.
+- The frontend now normalizes the API base URL and appends `/api` automatically.
+- The backend CORS configuration now supports environment-based frontend origins.
+- Production auth cookies are configured for cross-site frontend/backend deployments.
 - Stream credentials are required for chat and video calling features.
 - There are currently no automated tests configured in this repository.
 

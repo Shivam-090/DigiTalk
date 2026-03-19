@@ -7,16 +7,20 @@ const getStreamImage = (image) =>
 
 const normalizeUsername = (value = "") => value.trim().toLowerCase();
 const usernameRegex = /^[a-z0-9_]{3,20}$/;
+const isProduction = process.env.NODE_ENV === "production";
+
+const authCookieOptions = {
+  maxAge: 7 * 24 * 60 * 60 * 1000,
+  httpOnly: true,
+  sameSite: isProduction ? "none" : "lax",
+  secure: isProduction,
+  path: "/",
+};
 
 const issueAuthCookie = (res, userId) => {
   const token = jwt.sign({ userId }, process.env.JWT_SECRET_KEY, { expiresIn: "7d" });
 
-  res.cookie("jwt", token, {
-    maxAge: 7 * 24 * 60 * 60 * 1000,
-    httpOnly: true,
-    sameSite: "strict",
-    secure: process.env.NODE_ENV === "production",
-  });
+  res.cookie("jwt", token, authCookieOptions);
 };
 
 const isDeactivatedUser = (user) => user?.isOnboarded && user?.active === false;
@@ -158,7 +162,12 @@ export async function forgotPassword(req, res) {
 }
 
 export function logout(req, res) {
-  res.clearCookie("jwt");
+  res.clearCookie("jwt", {
+    httpOnly: true,
+    sameSite: authCookieOptions.sameSite,
+    secure: authCookieOptions.secure,
+    path: "/",
+  });
   res.status(200).json({ success: true, message: "Logged out successfully" });
 }
 
