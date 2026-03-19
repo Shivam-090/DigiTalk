@@ -16,13 +16,36 @@ const allowedOrigins = (process.env.CLIENT_URLS || process.env.CLIENT_URL || "ht
   .split(",")
   .map((origin) => origin.trim())
   .filter(Boolean);
+const allowedVercelPreviewSuffixes = (process.env.CLIENT_VERCEL_PREVIEW_SUFFIXES || "vercel.app")
+  .split(",")
+  .map((suffix) => suffix.trim().toLowerCase())
+  .filter(Boolean);
+
+const isAllowedOrigin = (origin) => {
+  if (!origin) return true;
+  if (allowedOrigins.includes(origin)) return true;
+
+  try {
+    const { hostname, protocol } = new URL(origin);
+
+    if (protocol !== "https:") {
+      return false;
+    }
+
+    return allowedVercelPreviewSuffixes.some(
+      (suffix) => hostname === suffix || hostname.endsWith(`.${suffix}`),
+    );
+  } catch {
+    return false;
+  }
+};
 
 app.set("trust proxy", 1);
 
 app.use(
   cors({
     origin(origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) {
+      if (isAllowedOrigin(origin)) {
         return callback(null, true);
       }
 

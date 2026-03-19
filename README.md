@@ -181,6 +181,12 @@ If you want to allow multiple frontend domains, use:
 CLIENT_URLS=https://your-frontend-domain,https://your-preview-domain
 ```
 
+For Vercel preview deployments, the backend also supports suffix-based origin matching. By default it allows secure origins ending in `vercel.app`, and you can override that with:
+
+```env
+CLIENT_VERCEL_PREVIEW_SUFFIXES=vercel.app
+```
+
 ## Admin Access
 
 When the backend connects to MongoDB, it automatically seeds or syncs an admin account using:
