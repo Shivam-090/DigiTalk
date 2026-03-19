@@ -26,6 +26,8 @@ export async function getRecommendedUsers(req, res) {
       { _id: { $nin: req.user.blockedUsers || [] } },
       { blockedUsers: { $nin: [currentUserId] } },
       { isOnboarded: true },
+      { active: true },
+      { isAdmin: false },
     ];
 
     if (search) {
@@ -85,6 +87,10 @@ export async function sendFriendRequest(req, res) {
     const recipient = await User.findById(recipientId);
     if (!recipient) {
       return res.status(404).json({ message: "Recipient user not found" });
+    }
+
+    if (recipient.isAdmin || !recipient.isOnboarded || recipient.active === false) {
+      return res.status(400).json({ message: "This user is unavailable." });
     }
 
     if (isBlockedEitherWay(req.user, recipient)) {
