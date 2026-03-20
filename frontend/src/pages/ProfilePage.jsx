@@ -16,6 +16,7 @@ import { completeOnboarding } from "../lib/api";
 import { fileToCompressedDataUrl } from "../lib/image.js";
 import { getLanguageFlag } from "../lib/language.jsx";
 import { LANGUAGES } from "../constants";
+import { hasErrors, validateProfileForm } from "../lib/validation";
 
 const emptyForm = {
   fullName: "",
@@ -31,6 +32,7 @@ const ProfilePage = () => {
   const { authUser } = useAuthUser();
   const queryClient = useQueryClient();
   const [formState, setFormState] = useState(emptyForm);
+  const [errors, setErrors] = useState({});
 
   useEffect(() => {
     if (!authUser) return;
@@ -46,6 +48,14 @@ const ProfilePage = () => {
     });
   }, [authUser]);
 
+  const updateField = (field, value) => {
+    const nextState = { ...formState, [field]: value };
+    setFormState(nextState);
+
+    const nextErrors = validateProfileForm(nextState);
+    setErrors((current) => ({ ...current, [field]: nextErrors[field] }));
+  };
+
   const { mutate: saveProfileMutation, isPending } = useMutation({
     mutationFn: completeOnboarding,
     onSuccess: () => {
@@ -59,16 +69,11 @@ const ProfilePage = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    const nextErrors = validateProfileForm(formState);
+    setErrors(nextErrors);
 
-    if (
-      !formState.fullName.trim() ||
-      !formState.username.trim() ||
-      !formState.bio.trim() ||
-      !formState.nativeLanguage ||
-      !formState.learningLanguage ||
-      !formState.location.trim()
-    ) {
-      toast.error("Please complete every field before saving.");
+    if (hasErrors(nextErrors)) {
+      toast.error("Please fix the highlighted fields.");
       return;
     }
 
@@ -77,10 +82,7 @@ const ProfilePage = () => {
 
   const handleRandomAvatar = () => {
     const idx = Math.floor(Math.random() * 100) + 1;
-    setFormState((current) => ({
-      ...current,
-      profilePic: `https://avatar.iran.liara.run/public/${idx}`,
-    }));
+    updateField("profilePic", `https://avatar.iran.liara.run/public/${idx}`);
     toast("Random avatar generated!");
   };
 
@@ -95,7 +97,7 @@ const ProfilePage = () => {
 
     try {
       const compressedImage = await fileToCompressedDataUrl(file);
-      setFormState((current) => ({ ...current, profilePic: compressedImage }));
+      updateField("profilePic", compressedImage);
       toast.success("Profile image selected.");
     } catch (error) {
       toast.error(error.message || "Could not read that image.");
@@ -236,12 +238,12 @@ const ProfilePage = () => {
                 <input
                   type="url"
                   value={formState.profilePic}
-                  onChange={(e) =>
-                    setFormState((current) => ({ ...current, profilePic: e.target.value }))
-                  }
-                  className="input input-bordered w-full"
+                  onChange={(e) => updateField("profilePic", e.target.value)}
+                  onBlur={(e) => updateField("profilePic", e.target.value)}
+                  className={`input input-bordered w-full ${errors.profilePic ? "input-error" : ""}`}
                   placeholder="https://example.com/your-photo.jpg"
                 />
+                {errors.profilePic && <p className="mt-1 text-sm text-error">{errors.profilePic}</p>}
               </div>
 
               <div className="form-control md:col-span-2">
@@ -264,12 +266,12 @@ const ProfilePage = () => {
                 <input
                   type="text"
                   value={formState.fullName}
-                  onChange={(e) =>
-                    setFormState((current) => ({ ...current, fullName: e.target.value }))
-                  }
-                  className="input input-bordered w-full"
+                  onChange={(e) => updateField("fullName", e.target.value)}
+                  onBlur={(e) => updateField("fullName", e.target.value)}
+                  className={`input input-bordered w-full ${errors.fullName ? "input-error" : ""}`}
                   placeholder="Your full name"
                 />
+                {errors.fullName && <p className="mt-1 text-sm text-error">{errors.fullName}</p>}
               </div>
 
               <div className="form-control md:col-span-2">
@@ -279,12 +281,12 @@ const ProfilePage = () => {
                 <input
                   type="text"
                   value={formState.username}
-                  onChange={(e) =>
-                    setFormState((current) => ({ ...current, username: e.target.value.toLowerCase() }))
-                  }
-                  className="input input-bordered w-full"
+                  onChange={(e) => updateField("username", e.target.value.toLowerCase())}
+                  onBlur={(e) => updateField("username", e.target.value.toLowerCase())}
+                  className={`input input-bordered w-full ${errors.username ? "input-error" : ""}`}
                   placeholder="Unique username"
                 />
+                {errors.username && <p className="mt-1 text-sm text-error">{errors.username}</p>}
               </div>
 
               <div className="form-control md:col-span-2">
@@ -293,12 +295,12 @@ const ProfilePage = () => {
                 </label>
                 <textarea
                   value={formState.bio}
-                  onChange={(e) =>
-                    setFormState((current) => ({ ...current, bio: e.target.value }))
-                  }
-                  className="textarea textarea-bordered min-h-24 w-full"
+                  onChange={(e) => updateField("bio", e.target.value)}
+                  onBlur={(e) => updateField("bio", e.target.value)}
+                  className={`textarea textarea-bordered min-h-24 w-full ${errors.bio ? "textarea-error" : ""}`}
                   placeholder="Tell others about yourself and your language goals"
                 />
+                {errors.bio && <p className="mt-1 text-sm text-error">{errors.bio}</p>}
               </div>
 
               <div className="form-control">
@@ -307,13 +309,9 @@ const ProfilePage = () => {
                 </label>
                 <select
                   value={formState.nativeLanguage}
-                  onChange={(e) =>
-                    setFormState((current) => ({
-                      ...current,
-                      nativeLanguage: e.target.value,
-                    }))
-                  }
-                  className="select select-bordered w-full"
+                  onChange={(e) => updateField("nativeLanguage", e.target.value)}
+                  onBlur={(e) => updateField("nativeLanguage", e.target.value)}
+                  className={`select select-bordered w-full ${errors.nativeLanguage ? "select-error" : ""}`}
                 >
                   <option value="">Select your language</option>
                   {LANGUAGES.map((lang) => (
@@ -322,6 +320,7 @@ const ProfilePage = () => {
                     </option>
                   ))}
                 </select>
+                {errors.nativeLanguage && <p className="mt-1 text-sm text-error">{errors.nativeLanguage}</p>}
               </div>
 
               <div className="form-control">
@@ -330,13 +329,9 @@ const ProfilePage = () => {
                 </label>
                 <select
                   value={formState.learningLanguage}
-                  onChange={(e) =>
-                    setFormState((current) => ({
-                      ...current,
-                      learningLanguage: e.target.value,
-                    }))
-                  }
-                  className="select select-bordered w-full"
+                  onChange={(e) => updateField("learningLanguage", e.target.value)}
+                  onBlur={(e) => updateField("learningLanguage", e.target.value)}
+                  className={`select select-bordered w-full ${errors.learningLanguage ? "select-error" : ""}`}
                 >
                   <option value="">Select language you're learning</option>
                   {LANGUAGES.map((lang) => (
@@ -345,6 +340,7 @@ const ProfilePage = () => {
                     </option>
                   ))}
                 </select>
+                {errors.learningLanguage && <p className="mt-1 text-sm text-error">{errors.learningLanguage}</p>}
               </div>
             </div>
 
@@ -357,13 +353,13 @@ const ProfilePage = () => {
                 <input
                   type="text"
                   value={formState.location}
-                  onChange={(e) =>
-                    setFormState((current) => ({ ...current, location: e.target.value }))
-                  }
-                  className="input input-bordered w-full pl-10"
+                  onChange={(e) => updateField("location", e.target.value)}
+                  onBlur={(e) => updateField("location", e.target.value)}
+                  className={`input input-bordered w-full pl-10 ${errors.location ? "input-error" : ""}`}
                   placeholder="City, Country"
                 />
               </div>
+              {errors.location && <p className="mt-1 text-sm text-error">{errors.location}</p>}
             </div>
 
             <button className="btn btn-primary btn-sm w-full sm:w-auto" disabled={isPending} type="submit">

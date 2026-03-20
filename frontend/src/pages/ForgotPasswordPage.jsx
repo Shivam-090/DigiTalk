@@ -4,6 +4,7 @@ import { Link, useNavigate } from "react-router";
 import { ShipWheelIcon } from "lucide-react";
 import toast from "react-hot-toast";
 import { forgotPassword } from "../lib/api";
+import { hasErrors, validateForgotPasswordForm } from "../lib/validation";
 
 const ForgotPasswordPage = () => {
   const navigate = useNavigate();
@@ -12,6 +13,7 @@ const ForgotPasswordPage = () => {
     password: "",
     confirmPassword: "",
   });
+  const [errors, setErrors] = useState({});
 
   const { mutate, isPending, error } = useMutation({
     mutationFn: forgotPassword,
@@ -21,8 +23,29 @@ const ForgotPasswordPage = () => {
     },
   });
 
+  const updateField = (field, value) => {
+    const nextData = { ...formData, [field]: value };
+    setFormData(nextData);
+
+    const nextErrors = validateForgotPasswordForm(nextData);
+    setErrors((current) => ({
+      ...current,
+      [field]: nextErrors[field],
+      ...(field === "password" || field === "confirmPassword"
+        ? { confirmPassword: nextErrors.confirmPassword }
+        : {}),
+    }));
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
+    const nextErrors = validateForgotPasswordForm(formData);
+    setErrors(nextErrors);
+
+    if (hasErrors(nextErrors)) {
+      return;
+    }
+
     mutate(formData);
   };
 
@@ -63,13 +86,13 @@ const ForgotPasswordPage = () => {
                   <input
                     type="email"
                     placeholder="hello@example.com"
-                    className="input input-bordered w-full"
+                    className={`input input-bordered w-full ${errors.email ? "input-error" : ""}`}
                     value={formData.email}
-                    onChange={(e) =>
-                      setFormData({ ...formData, email: e.target.value })
-                    }
+                    onChange={(e) => updateField("email", e.target.value)}
+                    onBlur={(e) => updateField("email", e.target.value)}
                     required
                   />
+                  {errors.email && <p className="text-sm text-error">{errors.email}</p>}
                 </div>
 
                 <div className="form-control w-full space-y-2">
@@ -79,13 +102,13 @@ const ForgotPasswordPage = () => {
                   <input
                     type="password"
                     placeholder="Enter your new password"
-                    className="input input-bordered w-full"
+                    className={`input input-bordered w-full ${errors.password ? "input-error" : ""}`}
                     value={formData.password}
-                    onChange={(e) =>
-                      setFormData({ ...formData, password: e.target.value })
-                    }
+                    onChange={(e) => updateField("password", e.target.value)}
+                    onBlur={(e) => updateField("password", e.target.value)}
                     required
                   />
+                  {errors.password && <p className="text-sm text-error">{errors.password}</p>}
                 </div>
 
                 <div className="form-control w-full space-y-2">
@@ -95,16 +118,13 @@ const ForgotPasswordPage = () => {
                   <input
                     type="password"
                     placeholder="Confirm your new password"
-                    className="input input-bordered w-full"
+                    className={`input input-bordered w-full ${errors.confirmPassword ? "input-error" : ""}`}
                     value={formData.confirmPassword}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        confirmPassword: e.target.value,
-                      })
-                    }
+                    onChange={(e) => updateField("confirmPassword", e.target.value)}
+                    onBlur={(e) => updateField("confirmPassword", e.target.value)}
                     required
                   />
+                  {errors.confirmPassword && <p className="text-sm text-error">{errors.confirmPassword}</p>}
                 </div>
 
                 <button

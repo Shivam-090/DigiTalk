@@ -6,6 +6,7 @@ import { completeOnboarding } from "../lib/api";
 import { fileToCompressedDataUrl } from "../lib/image.js";
 import { CameraIcon, ImagePlusIcon, ShuffleIcon, MapPinIcon, ShipWheelIcon } from "lucide-react";
 import { LANGUAGES } from "../constants";
+import { hasErrors, validateProfileForm } from "../lib/validation";
 
 const OnboardingPage = () => {
   const { authUser } = useAuthUser();
@@ -20,6 +21,7 @@ const OnboardingPage = () => {
     location: authUser?.location || "",
     profilePic: authUser?.profilePic || "",
   });
+  const [errors, setErrors] = useState({});
 
   const { mutate: onboardingMutation, isPending } = useMutation({
     mutationFn: completeOnboarding,
@@ -33,18 +35,21 @@ const OnboardingPage = () => {
     }
   });
 
+  const updateField = (field, value) => {
+    const nextState = { ...formState, [field]: value };
+    setFormState(nextState);
+
+    const nextErrors = validateProfileForm(nextState);
+    setErrors((current) => ({ ...current, [field]: nextErrors[field] }));
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
+    const nextErrors = validateProfileForm(formState);
+    setErrors(nextErrors);
 
-    if (
-      !formState.fullName.trim() ||
-      !formState.username.trim() ||
-      !formState.bio.trim() ||
-      !formState.nativeLanguage ||
-      !formState.learningLanguage ||
-      !formState.location.trim()
-    ) {
-      toast.error("Please complete every field before continuing.");
+    if (hasErrors(nextErrors)) {
+      toast.error("Please fix the highlighted fields.");
       return;
     }
 
@@ -54,7 +59,7 @@ const OnboardingPage = () => {
   const handleRandomAvatar = () => {
     const idx = Math.floor(Math.random()*100)+1;
     const randomAvatar = `https://avatar.iran.liara.run/public/${idx}`;
-    setFormState({...formState, profilePic: randomAvatar});
+    updateField("profilePic", randomAvatar);
     toast("Random avatar generated!")
   };
 
@@ -69,7 +74,7 @@ const OnboardingPage = () => {
 
     try {
       const compressedImage = await fileToCompressedDataUrl(file);
-      setFormState((current) => ({ ...current, profilePic: compressedImage }));
+      updateField("profilePic", compressedImage);
       toast.success("Profile image selected.");
     } catch (error) {
       toast.error(error.message || "Could not read that image.");
@@ -79,7 +84,7 @@ const OnboardingPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-base-100 px-4 py-10 flex items-center justify-center">
+    <div className="min-h-screen bg-base-100 px-4 py-10 flex items-center justify-center" data-theme={'forest'}>
       <div className="card bg-base-200 w-full max-w-3xl shadow-xl">
         <div className="card-body p-6 sm:p-8">
           <h1 className="text-2xl sm:text-3xl font-bold text-center mb-6">
@@ -131,12 +136,12 @@ const OnboardingPage = () => {
                   type="url"
                   name="profilePic"
                   value={formState.profilePic}
-                  onChange={(e) =>
-                    setFormState({ ...formState, profilePic: e.target.value })
-                  }
-                  className="input input-bordered w-full"
+                  onChange={(e) => updateField("profilePic", e.target.value)}
+                  onBlur={(e) => updateField("profilePic", e.target.value)}
+                  className={`input input-bordered w-full ${errors.profilePic ? "input-error" : ""}`}
                   placeholder="https://example.com/your-photo.jpg"
                 />
+                {errors.profilePic && <p className="mt-1 text-sm text-error">{errors.profilePic}</p>}
               </div>
 
               <div className="form-control w-full">
@@ -147,13 +152,13 @@ const OnboardingPage = () => {
                   type="text"
                   name="fullName"
                   value={formState.fullName}
-                  onChange={(e) =>
-                    setFormState({ ...formState, fullName: e.target.value })
-                  }
-                  className="input input-bordered w-full"
+                  onChange={(e) => updateField("fullName", e.target.value)}
+                  onBlur={(e) => updateField("fullName", e.target.value)}
+                  className={`input input-bordered w-full ${errors.fullName ? "input-error" : ""}`}
                   placeholder="Your full name"
                   required
                 />
+                {errors.fullName && <p className="mt-1 text-sm text-error">{errors.fullName}</p>}
               </div>
 
               <div className="form-control w-full">
@@ -164,13 +169,13 @@ const OnboardingPage = () => {
                   type="text"
                   name="username"
                   value={formState.username}
-                  onChange={(e) =>
-                    setFormState({ ...formState, username: e.target.value.toLowerCase() })
-                  }
-                  className="input input-bordered w-full"
+                  onChange={(e) => updateField("username", e.target.value.toLowerCase())}
+                  onBlur={(e) => updateField("username", e.target.value.toLowerCase())}
+                  className={`input input-bordered w-full ${errors.username ? "input-error" : ""}`}
                   placeholder="Choose a unique username"
                   required
                 />
+                {errors.username && <p className="mt-1 text-sm text-error">{errors.username}</p>}
               </div>
 
               <div className="form-control w-full">
@@ -180,13 +185,13 @@ const OnboardingPage = () => {
                 <textarea
                   name="bio"
                   value={formState.bio}
-                  onChange={(e) =>
-                    setFormState({ ...formState, bio: e.target.value })
-                  }
-                  className="textarea textarea-bordered w-full min-h-28"
+                  onChange={(e) => updateField("bio", e.target.value)}
+                  onBlur={(e) => updateField("bio", e.target.value)}
+                  className={`textarea textarea-bordered w-full min-h-28 ${errors.bio ? "textarea-error" : ""}`}
                   placeholder="Tell others about yourself and your language learning goals"
                   required
                 />
+                {errors.bio && <p className="mt-1 text-sm text-error">{errors.bio}</p>}
               </div>
             </div>
 
@@ -195,24 +200,26 @@ const OnboardingPage = () => {
                 <label className="label">
                   <span className="label-text">Native Language</span>
                 </label>
-                <select name="nativeLanguage" value={formState.nativeLanguage} onChange={(e) => setFormState({...formState, nativeLanguage:e.target.value})} className="select select-bordered w-full" required>
+                <select name="nativeLanguage" value={formState.nativeLanguage} onChange={(e) => updateField("nativeLanguage", e.target.value)} onBlur={(e) => updateField("nativeLanguage", e.target.value)} className={`select select-bordered w-full ${errors.nativeLanguage ? "select-error" : ""}`} required>
                   <option value="">Select your language</option>
                   {LANGUAGES.map((lang)=>(
                     <option key={`native-${lang}`} value={lang.toLowerCase()}>{lang}</option>
                   ))}
-                  </select>              
+                  </select>
+                {errors.nativeLanguage && <p className="mt-1 text-sm text-error">{errors.nativeLanguage}</p>}
               </div>
 
               <div className="form-control">
                 <label className="label">
                   <span className="label-text">Learning Language</span>
                 </label>
-                <select name="learningLanguage" value={formState.learningLanguage} onChange={(e) => setFormState({...formState, learningLanguage:e.target.value})} className="select select-bordered w-full" required>
+                <select name="learningLanguage" value={formState.learningLanguage} onChange={(e) => updateField("learningLanguage", e.target.value)} onBlur={(e) => updateField("learningLanguage", e.target.value)} className={`select select-bordered w-full ${errors.learningLanguage ? "select-error" : ""}`} required>
                   <option value="">Select language you're learning</option>
                   {LANGUAGES.map((lang)=>(
                     <option key={`learning-${lang}`} value={lang.toLowerCase()}>{lang}</option>
                   ))}
                 </select>
+                {errors.learningLanguage && <p className="mt-1 text-sm text-error">{errors.learningLanguage}</p>}
               </div>
             </div>
 
@@ -222,8 +229,9 @@ const OnboardingPage = () => {
               </label>
               <div className="relative">
                 <MapPinIcon className="absolute top-1/2 transform -translate-y-1/2 left-3 size-5 text-base-content opacity-70" />
-                <input type="text" name="location" value={formState.location} onChange={(e) => setFormState({...formState, location: e.target.value})} className="input input-bordered w-full pl-10" placeholder="City, Country" required />
+                <input type="text" name="location" value={formState.location} onChange={(e) => updateField("location", e.target.value)} onBlur={(e) => updateField("location", e.target.value)} className={`input input-bordered w-full pl-10 ${errors.location ? "input-error" : ""}`} placeholder="City, Country" required />
               </div>
+              {errors.location && <p className="mt-1 text-sm text-error">{errors.location}</p>}
             </div>
 
             <button className="btn btn-primary w-full" disabled={isPending} type="submit">

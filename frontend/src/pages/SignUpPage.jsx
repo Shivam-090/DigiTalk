@@ -3,6 +3,7 @@ import { ShipWheel } from "lucide-react";
 import { Link } from "react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { signup } from "../lib/api";
+import { hasErrors, validateSignupForm } from "../lib/validation";
 
 const SignupPage = () => {
   const [signupData, setSignupData] = useState({
@@ -11,6 +12,7 @@ const SignupPage = () => {
     email: "",
     password: "",
   });
+  const [errors, setErrors] = useState({});
 
   const queryClient = useQueryClient();
 
@@ -19,8 +21,23 @@ const SignupPage = () => {
     onSuccess: ()=> queryClient.invalidateQueries({ queryKey: ["authUser"] }),
   })
 
+  const updateField = (field, value) => {
+    const nextData = { ...signupData, [field]: value };
+    setSignupData(nextData);
+
+    const nextErrors = validateSignupForm(nextData);
+    setErrors((current) => ({ ...current, [field]: nextErrors[field] }));
+  };
+
   const handleSignup = (e) => {
     e.preventDefault();
+    const nextErrors = validateSignupForm(signupData);
+    setErrors(nextErrors);
+
+    if (hasErrors(nextErrors)) {
+      return;
+    }
+
     signupMutation(signupData);
   };
 
@@ -60,31 +77,35 @@ const SignupPage = () => {
                     <label className="label">
                       <span className="label-text">Full Name</span>
                     </label>
-                    <input type="text" placeholder="Full Name" className="input input-bordered w-full" value={signupData.fullName} onChange={(e) => setSignupData({ ...signupData, fullName: e.target.value})} required />
+                    <input type="text" placeholder="Full Name" className={`input input-bordered w-full ${errors.fullName ? "input-error" : ""}`} value={signupData.fullName} onChange={(e) => updateField("fullName", e.target.value)} onBlur={(e) => updateField("fullName", e.target.value)} required />
+                    {errors.fullName && <p className="mt-1 text-sm text-error">{errors.fullName}</p>}
                   </div>
 
                   <div className="form-control w-full">
                     <label className="label">
                       <span className="label-text">Email</span>
                     </label>
-                    <input type="text" placeholder="Example@gmail.com" className="input input-bordered w-full" value={signupData.email} onChange={(e) => setSignupData({ ...signupData, email: e.target.value})} required />
+                    <input type="text" placeholder="Example@gmail.com" className={`input input-bordered w-full ${errors.email ? "input-error" : ""}`} value={signupData.email} onChange={(e) => updateField("email", e.target.value)} onBlur={(e) => updateField("email", e.target.value)} required />
+                    {errors.email && <p className="mt-1 text-sm text-error">{errors.email}</p>}
                   </div>
 
                   <div className="form-control w-full">
                     <label className="label">
                       <span className="label-text">Username</span>
                     </label>
-                    <input type="text" placeholder="username_123" className="input input-bordered w-full" value={signupData.username} onChange={(e) => setSignupData({ ...signupData, username: e.target.value.toLowerCase()})} required />
+                    <input type="text" placeholder="username_123" className={`input input-bordered w-full ${errors.username ? "input-error" : ""}`} value={signupData.username} onChange={(e) => updateField("username", e.target.value.toLowerCase())} onBlur={(e) => updateField("username", e.target.value.toLowerCase())} required />
                     <p className="mt-1 text-xs opacity-70">
                       Use 3-20 letters, numbers, or underscores. This must be unique.
                     </p>
+                    {errors.username && <p className="mt-1 text-sm text-error">{errors.username}</p>}
                   </div>
                   
                   <div className="form-control w-full">
                     <label className="label">
                       <span className="label-text">Password</span>
                     </label>
-                    <input type="Password" placeholder="Enter your password" className="input input-bordered w-full" value={signupData.password} onChange={(e) => setSignupData({ ...signupData, password: e.target.value})} required />
+                    <input type="Password" placeholder="Enter your password" className={`input input-bordered w-full ${errors.password ? "input-error" : ""}`} value={signupData.password} onChange={(e) => updateField("password", e.target.value)} onBlur={(e) => updateField("password", e.target.value)} required />
+                    {errors.password && <p className="mt-1 text-sm text-error">{errors.password}</p>}
                   </div>
 
                   <div className="form-control w-full">

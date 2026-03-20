@@ -1,12 +1,20 @@
 import jwt from "jsonwebtoken";
 import { upsertStreamUser } from "../lib/stream.js";
+import {
+  getMissingProfileFields,
+  validateBio,
+  validateEmail,
+  validateFullName,
+  validateLanguage,
+  validateLocation,
+  validatePassword,
+  validateProfilePic,
+  validateUsername,
+} from "../lib/validation/auth.validation.js";
 import User from "../models/User.js";
 
 const getStreamImage = (image) =>
   typeof image === "string" && /^https?:\/\//i.test(image) ? image : "";
-
-const normalizeUsername = (value = "") => value.trim().toLowerCase();
-const usernameRegex = /^[a-z0-9_]{3,20}$/;
 const isProduction = process.env.NODE_ENV === "production";
 
 const authCookieOptions = {
@@ -33,23 +41,30 @@ export async function signup(req, res) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
-    if (password.length < 6) {
-      return res.status(400).json({ message: "Password must be at least 6 characters" });
+    const emailValidation = validateEmail(email);
+    if (!emailValidation.valid) {
+      return res.status(400).json({ message: emailValidation.message });
     }
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return res.status(400).json({ message: "Invalid email format" });
+    const passwordValidation = validatePassword(password);
+    if (!passwordValidation.valid) {
+      return res.status(400).json({ message: passwordValidation.message });
     }
 
-    const normalizedUsername = normalizeUsername(username);
-    if (!usernameRegex.test(normalizedUsername)) {
-      return res.status(400).json({
-        message: "Username must be 3-20 characters and use only letters, numbers, and underscores",
-      });
+    const fullNameValidation = validateFullName(fullName);
+    if (!fullNameValidation.valid) {
+      return res.status(400).json({ message: fullNameValidation.message });
     }
 
-    const existingUser = await User.findOne({ email });
+    const usernameValidation = validateUsername(username);
+    if (!usernameValidation.valid) {
+      return res.status(400).json({ message: usernameValidation.message });
+    }
+
+    const normalizedEmail = emailValidation.value;
+    const normalizedUsername = usernameValidation.value;
+
+    const existingUser = await User.findOne({ email: normalizedEmail });
     if (existingUser) {
       return res.status(400).json({ message: "Email already exists, please use a different email" });
     }
@@ -63,8 +78,8 @@ export async function signup(req, res) {
     const randomAvatar = `https://avatar.iran.liara.run/public/${idx}`;
 
     const newUser = await User.create({
-      email,
-      fullName,
+      email: normalizedEmail,
+      fullName: fullNameValidation.value,
       username: normalizedUsername,
       password,
       profilePic: randomAvatar,
@@ -86,6 +101,9 @@ export async function signup(req, res) {
     res.status(201).json({ success: true, user: newUser });
   } catch (error) {
     console.log("Error in signup controller", error);
+    if (error.code === 11000 && error.keyPattern?.email) {
+      return res.status(400).json({ message: "Email already exists, please use a different email" });
+    }
     if (error.code === 11000 && error.keyPattern?.username) {
       return res.status(400).json({ message: "Username already exists in database" });
     }
@@ -101,7 +119,17 @@ export async function login(req, res) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
-    const user = await User.findOne({ email });
+    const emailValidation = validateEmail(email);
+    if (!emailValidation.valid) {
+      return res.status(400).json({ message: emailValidation.message });
+    }
+
+    const passwordValidation = validatePassword(password);
+    if (!passwordValidation.valid) {
+      return res.status(400).json({ message: passwordValidation.message });
+    }
+
+    const user = await User.findOne({ email: emailValidation.value });
     if (!user) {
       return res.status(401).json({ message: "Invalid email or password" });
     }
@@ -131,15 +159,17 @@ export async function forgotPassword(req, res) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
-    if (password.length < 6) {
-      return res.status(400).json({ message: "Password must be at least 6 characters" });
+    const emailValidation = validateEmail(email);
+    if (!emailValidation.valid) {
+      return res.status(400).json({ message: emailValidation.message });
     }
 
-    if (password !== confirmPassword) {
-      return res.status(400).json({ message: "Passwords do not match" });
+    const passwordValidation = validatePassword(password, { confirmPassword });
+    if (!passwordValidation.valid) {
+      return res.status(400).json({ message: passwordValidation.message });
     }
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: emailValidation.value });
     if (!user) {
       return res.status(404).json({ message: "No account found with this email" });
     }
@@ -175,27 +205,51 @@ export async function onboard(req, res) {
   try {
     const userId = req.user._id;
     const { fullName, username, bio, nativeLanguage, learningLanguage, location } = req.body;
+    const missingFields = getMissingProfileFields(req.body);
 
-    if (!fullName || !username || !bio || !nativeLanguage || !learningLanguage || !location) {
+    if (missingFields.length > 0) {
       return res.status(400).json({
         message: "All fields are required for onboarding",
-        missingFields: [
-          !fullName && "fullName",
-          !username && "username",
-          !bio && "bio",
-          !nativeLanguage && "nativeLanguage",
-          !learningLanguage && "learningLanguage",
-          !location && "location",
-        ].filter(Boolean),
+        missingFields,
       });
     }
 
-    const normalizedUsername = normalizeUsername(username);
-    if (!usernameRegex.test(normalizedUsername)) {
-      return res.status(400).json({
-        message: "Username must be 3-20 characters and use only letters, numbers, and underscores",
-      });
+    const fullNameValidation = validateFullName(fullName);
+    if (!fullNameValidation.valid) {
+      return res.status(400).json({ message: fullNameValidation.message });
     }
+
+    const usernameValidation = validateUsername(username);
+    if (!usernameValidation.valid) {
+      return res.status(400).json({ message: usernameValidation.message });
+    }
+
+    const bioValidation = validateBio(bio);
+    if (!bioValidation.valid) {
+      return res.status(400).json({ message: bioValidation.message });
+    }
+
+    const nativeLanguageValidation = validateLanguage(nativeLanguage, "Native language");
+    if (!nativeLanguageValidation.valid) {
+      return res.status(400).json({ message: nativeLanguageValidation.message });
+    }
+
+    const learningLanguageValidation = validateLanguage(learningLanguage, "Learning language");
+    if (!learningLanguageValidation.valid) {
+      return res.status(400).json({ message: learningLanguageValidation.message });
+    }
+
+    const locationValidation = validateLocation(location);
+    if (!locationValidation.valid) {
+      return res.status(400).json({ message: locationValidation.message });
+    }
+
+    const profilePicValidation = validateProfilePic(req.body.profilePic);
+    if (!profilePicValidation.valid) {
+      return res.status(400).json({ message: profilePicValidation.message });
+    }
+
+    const normalizedUsername = usernameValidation.value;
 
     const existingUsername = await User.findOne({
       username: normalizedUsername,
@@ -211,13 +265,15 @@ export async function onboard(req, res) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    updatedUser.fullName = fullName;
+    updatedUser.fullName = fullNameValidation.value;
     updatedUser.username = normalizedUsername;
-    updatedUser.bio = bio;
-    updatedUser.nativeLanguage = nativeLanguage;
-    updatedUser.learningLanguage = learningLanguage;
-    updatedUser.location = location;
-    updatedUser.profilePic = req.body.profilePic ?? updatedUser.profilePic;
+    updatedUser.bio = bioValidation.value;
+    updatedUser.nativeLanguage = nativeLanguageValidation.value;
+    updatedUser.learningLanguage = learningLanguageValidation.value;
+    updatedUser.location = locationValidation.value;
+    if (profilePicValidation.value !== undefined) {
+      updatedUser.profilePic = profilePicValidation.value;
+    }
     updatedUser.isOnboarded = true;
     updatedUser.active = true;
     await updatedUser.save();
@@ -236,6 +292,9 @@ export async function onboard(req, res) {
     res.status(200).json({ success: true, user: updatedUser });
   } catch (error) {
     console.log("Error in onboarding controller", error);
+    if (error.code === 11000 && error.keyPattern?.email) {
+      return res.status(400).json({ message: "Email already exists, please use a different email" });
+    }
     if (error.code === 11000 && error.keyPattern?.username) {
       return res.status(400).json({ message: "Username already exists in database" });
     }

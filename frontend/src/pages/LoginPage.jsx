@@ -3,12 +3,14 @@ import React, { useState } from "react";
 import { login } from "../lib/api";
 import { ShipWheelIcon } from "lucide-react";
 import { Link } from "react-router";
+import { hasErrors, validateLoginForm } from "../lib/validation";
 
 const LoginPage = () => {
   const [loginData, setLoginData] = useState({
     email: "",
     password: "",
   });
+  const [errors, setErrors] = useState({});
 
   const queryClient = useQueryClient();
 
@@ -21,8 +23,23 @@ const LoginPage = () => {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["authUser"] }),
   });
 
+  const updateField = (field, value) => {
+    const nextData = { ...loginData, [field]: value };
+    setLoginData(nextData);
+
+    const nextErrors = validateLoginForm(nextData);
+    setErrors((current) => ({ ...current, [field]: nextErrors[field] }));
+  };
+
   const handleLogin = (e) => {
     e.preventDefault();
+    const nextErrors = validateLoginForm(loginData);
+    setErrors(nextErrors);
+
+    if (hasErrors(nextErrors)) {
+      return;
+    }
+
     loginMutation(loginData);
   };
 
@@ -65,13 +82,13 @@ const LoginPage = () => {
                     <input
                       type="email"
                       placeholder="hello@example.com"
-                      className="input input-border w-full"
+                      className={`input input-bordered w-full ${errors.email ? "input-error" : ""}`}
                       value={loginData.email}
-                      onChange={(e) =>
-                        setLoginData({ ...loginData, email: e.target.value })
-                      }
+                      onChange={(e) => updateField("email", e.target.value)}
+                      onBlur={(e) => updateField("email", e.target.value)}
                       required
                     />
+                    {errors.email && <p className="text-sm text-error">{errors.email}</p>}
                   </div>
 
                   <div className="form-control w-full space-y-2">
@@ -81,13 +98,13 @@ const LoginPage = () => {
                     <input
                       type="password"
                       placeholder="**********"
-                      className="input input-border w-full"
+                      className={`input input-bordered w-full ${errors.password ? "input-error" : ""}`}
                       value={loginData.password}
-                      onChange={(e) =>
-                        setLoginData({ ...loginData, password: e.target.value })
-                      }
+                      onChange={(e) => updateField("password", e.target.value)}
+                      onBlur={(e) => updateField("password", e.target.value)}
                       required
                     />
+                    {errors.password && <p className="text-sm text-error">{errors.password}</p>}
                   </div>
 
                   <div className="text-right">
